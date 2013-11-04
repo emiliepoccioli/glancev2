@@ -45,7 +45,7 @@ node.set["glance"]["rabbitmq"]["ssl"] = rabbitmq['rabbitmq']['ssl']
 if node[:glance][:default_store] == 'file'
    node.set[:glance][:notifier_strategy] = 'rabbit' 
    Chef::Log.info("Default store = File ") 
-   
+end   
 
 ##################################################################
 ############################ Image_sync ##########################
