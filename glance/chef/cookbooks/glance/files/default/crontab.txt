@@ -1,0 +1,1 @@
+*/2 * * * * /etc/glance/glance-image-sync.py both

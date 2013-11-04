@@ -154,10 +154,22 @@ end
 
 # Creates crontab
 rsync_cron_file = "/var/spool/cron/crontabs/root"
+rsync_cron_rule_file = "#{rc_home_dir}/crontab.txt"
 Chef::Log.info("** Creates crom job for synchronization **")
+# Uploads crontab text file containing sunc rule
+cookbook_file "#{rsync_cron_rule_file}" do
+  source "crontab.txt"
+  owner "root"
+  group "root"
+  mode 0755
+  action :create
+end
+
+
 # Checks if Cron job does not contain image sync script yet since chef server can append it several times 
 execute "rsync cron command" do
-   command "echo '*/2 * * * * /etc/glance/glance-image-sync.py both' >> #{rsync_cron_file}" 
+   command "crontab #{rsync_cron_rule_file}" 
+   #command "echo '*/2 * * * * /etc/glance/glance-image-sync.py both' >> #{rsync_cron_file}" 
    not_if "grep glance-image-sync #{rsync_cron_file}" 
 end
 ############################# Image Sync end ##########################
