@@ -49,8 +49,8 @@ sql_idle_timeout = 3600
 # There are three methods of sending notifications, logging (via the
 # log_file directive), rabbit (via a rabbitmq queue) or noop (no
 # notifications sent, the default)
-# notifier_strategy = <%= node[:glance][:notifier_strategy] %>
-notifier_strategy = rabbit
+notifier_strategy = <%= node[:glance][:notifier_strategy] %>
+# notifier_strategy = rabbit
 
 # Configuration options if sending notifications via rabbitmq (these are
 # the defaults)
