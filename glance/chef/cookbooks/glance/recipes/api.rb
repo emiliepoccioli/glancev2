@@ -66,7 +66,7 @@ getrmip_db = data_bag_item('crowbar', bcproposal)
 # Hostname node1 
 glancehost1 = getrmip_db["deployment"]["glance"]["elements"]["glance-server"][0]
 # Hostname node2 
-glancehost2 = getrmip_db["deployment"]["glance"]["elements"]["glance-server][1]
+glancehost2 = getrmip_db["deployment"]["glance"]["elements"]["glance-server"][1]
 # Hostname node2 
 glancehost3 = getrmip_db["deployment"]["glance"]["elements"]["glance-server"][2]
 glancehosts = glancehost1 + "," + glancehost2 + "," + glancehost3
