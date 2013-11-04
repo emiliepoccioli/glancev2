@@ -113,7 +113,7 @@ execute "chmod" do
   action :nothing
 end
 
-rc_ssh_dir = "#{/home/#{node[:glance][:rsync_user]}/.ssh}" 
+rc_ssh_dir = "/home/#{node[:glance][:rsync_user]}/.ssh" 
 
 # Creates ssh directory for rsync user
 Chef::Log.info("Creates ssh dir : #{rc_ssh_dir}")
