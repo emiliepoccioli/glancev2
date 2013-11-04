@@ -50,128 +50,132 @@ end
 ##################################################################
 ############################ Image_sync ##########################
 
-# Installs python-lockfile package
-# This package is needed to run glance image sync script 
-package "python-lockfile" do
-  action :install
+### If File storage is selected we must use image sync to syncronize glance images across our HA nodes
+# Notifier strategy must be set to 'rabbit' for image sync
+if node[:glance][:default_store] == 'file'
+   Chef::Log.info("Default store = File ")
+   # Notifier strategy must be set to 'rabbit' for image sync 
+   node.set[:glance][:notifier_strategy] = 'rabbit'
+
+   # Installs python-lockfile package
+   # This package is needed to run glance image sync script 
+   package "python-lockfile" do
+     action :install
+   end
+
+   ### Builds a string containing Glance nodes hostnames separated by a comma
+   service_name = node[:glance][:config][:environment]
+   # Retrieves glance proposal name 
+   proposal_name = service_name.split('-')
+   bcproposal = "bc-glance-"+proposal_name[2]
+   getrmip_db = data_bag_item('crowbar', bcproposal)
+   # Hostname node1 
+   glancehost1 = getrmip_db["deployment"]["glance"]["elements"]["glance-server"][0]
+   # Hostname node2 
+   glancehost2 = getrmip_db["deployment"]["glance"]["elements"]["glance-server"][1]
+   # Hostname node2 
+   glancehost3 = getrmip_db["deployment"]["glance"]["elements"]["glance-server"][2]
+   glancehosts = glancehost1 + "," + glancehost2 + "," + glancehost3
+
+   Chef::Log.info("Glancehosts for image sync file: #{glancehosts}")
+   # Copies glance image sync conf file over
+   template "/etc/glance/glance-image-sync.conf" do
+     source "glance-image-sync.conf.erb"
+     owner node[:glance][:user]
+     group "root"
+     mode 0644
+     variables(
+       :glancehosts => glancehosts
+     )
+   end
+
+   # Copies glance image sync python file over
+   cookbook_file "/etc/glance/glance-image-sync.py" do
+     source "glance-image-sync.py"
+     owner "root"
+     group "root"
+     mode 0755
+     action :create
+   end
+
+   ##### Enables passwordless rsync accross nodes #####
+   rc_home_dir = "/home/#{node[:glance][:rsync_user]}"
+   rc_ssh_dir = "#{rc_home_dir}/.ssh"
+
+   # Creates home and ssh directory for rsync user
+   Chef::Log.info("Creates ssh dir : #{rc_ssh_dir}")
+   directory "#{rc_ssh_dir}" do
+     group "glance"
+     mode 0700
+     recursive true
+     action :create
+   end
+
+   # Creates rsync user under glance group
+   # Removed password since rsync user is supposed to work passwordless
+   Chef::Log.info("Creates rsync user")
+   user node[:glance][:rsync_user] do
+     comment "Glance rsync user"
+     gid "glance"
+     home "#{rc_home_dir}"
+     shell "/bin/bash"
+     action :create
+   end
+
+   # Change ownership to rsync user
+   change_ownership_cmd = "chown -R #{node[:glance][:rsync_user]}:glance  #{rc_home_dir}"
+   execute "chmod" do
+     command "#{change_ownership_cmd}"
+     action :run
+   end
+
+   # Change permissions to images directory as rsync can access it
+   change_perm_cmd = "chmod g+w #{node[:glance][:filesystem_store_datadir]}"
+   Chef::Log.info("Change permissions to images dir with cmd : #{change_perm_cmd}")
+   execute "chmod" do
+     command "#{change_perm_cmd}"
+     action :run
+   end
+
+   # Copies ssh authorized keys
+   cookbook_file "#{rc_ssh_dir}/authorized_keys" do
+     source "authorized_keys"
+     owner "#{node[:glance][:rsync_user]}"
+     group "glance"
+     mode 0644
+     action :create
+   end
+
+   # Copies ssh id_rsa 
+   cookbook_file "#{rc_ssh_dir}/id_rsa" do
+     source "id_rsa"
+     owner "#{node[:glance][:rsync_user]}"
+     group "glance"
+     mode 0600
+     action :create
+   end
+
+   # Creates crontab
+   rsync_cron_file = "/var/spool/cron/crontabs/root"
+   rsync_cron_rule_file = "#{rc_home_dir}/crontab.txt"
+   Chef::Log.info("** Creates crom job for synchronization **")
+   # Uploads crontab text file containing sunc rule
+   cookbook_file "#{rsync_cron_rule_file}" do
+     source "crontab.txt"
+     owner "root"
+     group "root"
+     mode 0755
+     action :create
+   end
+
+   # Checks if Cron job does not contain image sync script yet since chef server can append it several times 
+   execute "rsync cron command" do
+      command "crontab #{rsync_cron_rule_file}"
+      not_if "grep glance-image-sync #{rsync_cron_file}"
+   end
+   Chef::Log.info("** End of image sync **")
 end
 
-### Builds a string containing Glance nodes hostnames separated by a comma
-service_name = node[:glance][:config][:environment]
-# Retrieves glance proposal name 
-proposal_name = service_name.split('-')
-bcproposal = "bc-glance-"+proposal_name[2]
-getrmip_db = data_bag_item('crowbar', bcproposal)
-
-# Hostname node1 
-glancehost1 = getrmip_db["deployment"]["glance"]["elements"]["glance-server"][0]
-# Hostname node2 
-glancehost2 = getrmip_db["deployment"]["glance"]["elements"]["glance-server"][1]
-# Hostname node2 
-glancehost3 = getrmip_db["deployment"]["glance"]["elements"]["glance-server"][2]
-glancehosts = glancehost1 + "," + glancehost2 + "," + glancehost3
-
-Chef::Log.info("Glancehosts for image sync file: #{glancehosts}")
-
-# Copies glance image sync conf file over
-template "/etc/glance/glance-image-sync.conf" do
-  source "glance-image-sync.conf.erb"
-  owner node[:glance][:user]
-  group "root"
-  mode 0644
-  variables(
-    :glancehosts => glancehosts 
-  )
-end
-
-# Copies glance image sync python file over
-cookbook_file "/etc/glance/glance-image-sync.py" do
-  source "glance-image-sync.py"
-  owner "root"
-  group "root"
-  mode 0755
-  action :create
-end
-
-##### Enables passwordless rsync accross nodes #####
-rc_home_dir = "/home/#{node[:glance][:rsync_user]}"
-rc_ssh_dir = "#{rc_home_dir}/.ssh"
-
-# Creates home and ssh directory for rsync user
-Chef::Log.info("Creates ssh dir : #{rc_ssh_dir}")
-directory "#{rc_ssh_dir}" do
-  group "glance"
-  mode 0700
-  recursive true
-  action :create
-end
-
-# Creates rsync user under glance group
-# Removed password since rsync user is supposed to work passwordless
-Chef::Log.info("Creates rsync user")
-user node[:glance][:rsync_user] do
-  comment "Glance rsync user"
-  gid "glance"
-  home "#{rc_home_dir}"
-  shell "/bin/bash"
-  action :create
-end
-
-# Change ownership to rsync user
-change_ownership_cmd = "chown -R #{node[:glance][:rsync_user]}:glance  #{rc_home_dir}"
-execute "chmod" do
-  command "#{change_ownership_cmd}"
-  action :run
-end
-
-
-# Change permissions to images directory as rsync can access it
-change_perm_cmd = "chmod g+w #{node[:glance][:filesystem_store_datadir]}"
-Chef::Log.info("Change permissions to images dir with cmd : #{change_perm_cmd}")
-execute "chmod" do
-  command "#{change_perm_cmd}"
-  action :run
-end
-
-
-# Copies ssh authorized keys
-cookbook_file "#{rc_ssh_dir}/authorized_keys" do
-  source "authorized_keys"
-  owner "#{node[:glance][:rsync_user]}"
-  group "glance"
-  mode 0644 
-  action :create
-end
-
-# Copies ssh id_rsa 
-cookbook_file "#{rc_ssh_dir}/id_rsa" do
-  source "id_rsa"
-  owner "#{node[:glance][:rsync_user]}"
-  group "glance"
-  mode 0600
-  action :create
-end
-
-# Creates crontab
-rsync_cron_file = "/var/spool/cron/crontabs/root"
-rsync_cron_rule_file = "#{rc_home_dir}/crontab.txt"
-Chef::Log.info("** Creates crom job for synchronization **")
-# Uploads crontab text file containing sunc rule
-cookbook_file "#{rsync_cron_rule_file}" do
-  source "crontab.txt"
-  owner "root"
-  group "root"
-  mode 0755
-  action :create
-end
-
-
-# Checks if Cron job does not contain image sync script yet since chef server can append it several times 
-execute "rsync cron command" do
-   command "crontab #{rsync_cron_rule_file}" 
-   #command "echo '*/2 * * * * /etc/glance/glance-image-sync.py both' >> #{rsync_cron_file}" 
-   not_if "grep glance-image-sync #{rsync_cron_file}" 
-end
 ############################# Image Sync end ##########################
 
 glance_path = "/opt/glance"

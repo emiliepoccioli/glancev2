@@ -101,8 +101,9 @@ class GlanceService < ServiceObject
       @logger.info("Glance create_proposal: no keystone found")
       base["attributes"]["glance"]["use_keystone"] = false
     end
-# Removes random password generation for glance service
-#    base["attributes"]["glance"]["service_password"] = '%012d' % rand(1e12)
+     #Set random password for glance service
+     base["attributes"]["glance"]["service_password"] = '%012d' % rand(1e12)
+     base["attributes"]["glance"]["db"]["password"] = random_password 
 
     @logger.debug("Glance create_proposal: exiting")
     base

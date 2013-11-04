@@ -33,6 +33,11 @@
                 "bind_open_address": { "type": "bool", "required": true }
               }
             },
+            "db": { "type": "map", "required": true, "mapping": {
+                      "database": { "type" : "str", "required" : true },
+                      "user": { "type" : "str", "required" : true },
+                      "password": { "type" : "str" }
+                    }},
             "enable_caching": { "type": "bool", "required": true },
             "use_cachemanagement": { "type": "bool", "required": true },
             "image_cache_datadir": { "type": "str", "required": true },

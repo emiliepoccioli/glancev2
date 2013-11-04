@@ -34,11 +34,6 @@ Chef::Log.info(">>>>>> Glance: Common Recipe db root password: #{db_root_passwor
 node.set[:glance][:api][:bind_open_address] = false
 node.set[:glance][:registry][:bind_open_address] = false
 
-# Set Glance Service Credentials (Authentication against Keystone)
-# There are set by default in data bags json file
-node.set_unless[:glance][:service_user] = "glance"
-node.set_unless[:glance][:service_password] = "glance"
-
 
 ######################################################################################
 
@@ -95,12 +90,12 @@ sql_address = admin_vip
 url_scheme = "mysql"
 
 ::Chef::Recipe.send(:include, Opscode::OpenSSL::Password)
-
+# Glance DB password is defined once in models/glance_service.rb and is common to all HA nodes
 #node.set_unless['glance']['db']['password'] = secure_password
-node.set_unless['glance']['db']['password'] = "glance" 
 node.set_unless['glance']['db']['user'] = "glance"
 node.set_unless['glance']['db']['database'] = "glance"
-
+Chef::Log.info("Glance service password #{node['glance']['service_password']}")
+Chef::Log.info("Glance db password #{node['glance']['db']['password']}")
 Chef::Log.info("Database server found at #{sql_address}")
 
 ############## MySQL operations done with a template file ################ 

@@ -14,6 +14,12 @@
       "registry": {
         "bind_open_address": true
       },
+      "db": {
+        "database": "glance",
+        "user": "glance",
+        "password": "glance"
+      },
+
       "enable_caching": false,
       "use_cachemanagement": false,
       "image_cache_datadir": "/var/lib/glance/image-cache",
