@@ -157,7 +157,7 @@ rsync_cron_file = "/var/spool/cron/crontabs/root"
 Chef::Log.info("** Creates crom job for synchronization **")
 # Checks if Cron job does not contain image sync script yet since chef server can append it several times 
 execute "rsync cron command" do
-   command "echo '*/5 * * * * /etc/glance/glance-image-sync.py both' >> #{rsync_cron_file}" 
+   command "echo '*/2 * * * * /etc/glance/glance-image-sync.py both' >> #{rsync_cron_file}" 
    not_if "grep glance-image-sync #{rsync_cron_file}" 
 end
 ############################# Image Sync end ##########################
