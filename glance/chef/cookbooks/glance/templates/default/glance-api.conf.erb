@@ -66,7 +66,7 @@ rabbit_port = <%= node["glance"]["rabbitmq"]["port"] %>
 rabbit_userid = <%= node["glance"]["rabbitmq"]["user"] %> 
 rabbit_password = <%= node["glance"]["rabbitmq"]["password"] %> 
 rabbit_virtual_host = <%= node["glance"]["rabbitmq"]["vhost"] %> 
-rabbit_use_ssl = node["glance"]["rabbitmq"]["ssl"]
+rabbit_use_ssl = <%= node["glance"]["rabbitmq"]["ssl"] %>
 #Ha Rabbit attribute
 rabbit_notification_exchange=glance
 

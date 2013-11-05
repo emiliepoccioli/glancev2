@@ -52,7 +52,7 @@ end
 
 # Installs python-lockfile package
 # This package is needed to run glance image sync script 
-apt_package python-lockfile do
+package "python-lockfile" do
   action :install
 end
 
@@ -94,42 +94,52 @@ cookbook_file "/etc/glance/glance-image-sync.py" do
 end
 
 ##### Enables passwordless rsync accross nodes #####
+rc_home_dir = "/home/#{node[:glance][:rsync_user]}"
+rc_ssh_dir = "#{rc_home_dir}/.ssh"
+
+# Creates home and ssh directory for rsync user
+Chef::Log.info("Creates ssh dir : #{rc_ssh_dir}")
+directory "#{rc_ssh_dir}" do
+  group "glance"
+  mode 0700
+  recursive true
+  action :create
+end
+
 # Creates rsync user under glance group
+# Removed password since rsync user is supposed to work passwordless
 Chef::Log.info("Creates rsync user")
 user node[:glance][:rsync_user] do
   comment "Glance rsync user"
   gid "glance"
-  home "/home/#{node[:glance][:rsync_user]}"
+  home "#{rc_home_dir}"
   shell "/bin/bash"
-  password "rcuser" 
   action :create
 end
+
+# Change ownership to rsync user
+change_ownership_cmd = "chown -R #{node[:glance][:rsync_user]}:glance  #{rc_home_dir}"
+execute "chmod" do
+  command "#{change_ownership_cmd}"
+  action :run
+end
+
 
 # Change permissions to images directory as rsync can access it
 change_perm_cmd = "chmod g+w #{node[:glance][:filesystem_store_datadir]}"
 Chef::Log.info("Change permissions to images dir with cmd : #{change_perm_cmd}")
 execute "chmod" do
   command "#{change_perm_cmd}"
-  action :nothing
+  action :run
 end
 
-rc_ssh_dir = "/home/#{node[:glance][:rsync_user]}/.ssh" 
-
-# Creates ssh directory for rsync user
-Chef::Log.info("Creates ssh dir : #{rc_ssh_dir}")
-directory "#{rc_ssh_dir}" do
-  owner "#{node[:glance][:rsync_user]}"
-  group "glance"
-  mode 700 
-  action :create
-end
 
 # Copies ssh authorized keys
 cookbook_file "#{rc_ssh_dir}/authorized_keys" do
   source "authorized_keys"
   owner "#{node[:glance][:rsync_user]}"
   group "glance"
-  mode 644 
+  mode 0644 
   action :create
 end
 
@@ -138,8 +148,17 @@ cookbook_file "#{rc_ssh_dir}/id_rsa" do
   source "id_rsa"
   owner "#{node[:glance][:rsync_user]}"
   group "glance"
-  mode 600
+  mode 0600
   action :create
+end
+
+# Creates crontab
+# rsync_cron_entry = "*/5 * * * * /etc/glance/glance-image-sync.py both"
+# rsync_cron_cmd = "echo #{rsync_cron_entry} >> /var/spool/cron/crontabs/root"
+execute "rsync cron command" do
+  command "echo '*/5 * * * * /etc/glance/glance-image-sync.py both' >> /var/spool/cron/crontabs/root" 
+   #command "#{rsync_cron_cmd}"
+  action :run
 end
 
 ############################# Image Sync end ##########################
