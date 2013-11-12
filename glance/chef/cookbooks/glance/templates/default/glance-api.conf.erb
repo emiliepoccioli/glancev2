@@ -1,0 +1,177 @@
+[DEFAULT]
+# Show more verbose log output (sets INFO log level output)
+verbose = <%= node[:glance][:verbose] ? "True" : "False" %>
+
+# Show debugging output in logs (sets DEBUG log level output)
+debug = <%= node[:glance][:debug] ? "True" : "False" %>
+
+# Which backend store should Glance use by default is not specified
+# in a request to add a new image to Glance? Default: 'file'
+# Available choices are 'file', 'swift', and 's3'
+default_store = <%= node[:glance][:default_store] %>
+
+# Address to bind the API server
+bind_host = <%= node[:glance][:api][:bind_open_address] ? "0.0.0.0" : node[:glance][:api][:bind_host] %>
+
+# Port the bind the API server to
+bind_port = <%= node[:glance][:api][:bind_port] %>
+
+# Address to find the registry server
+registry_host = <%= node[:glance][:registry][:bind_host] %>
+
+# Port the registry server is listening on
+registry_port = <%= node[:glance][:registry][:bind_port] %>
+
+# Log to this file. Make sure you do not set the same log
+# file for both the API and registry servers!
+log_file = <%= node[:glance][:api][:log_file] %>
+
+# Send logs to syslog (/dev/log) instead of to file specified by `log_file`
+use_syslog = <%= node[:glance][:use_syslog] ? "True" : "False" %>
+
+# SQLAlchemy connection string for the reference implementation
+# registry server. Any valid SQLAlchemy connection string is fine.
+# See: http://www.sqlalchemy.org/docs/05/reference/sqlalchemy/connections.html#sqlalchemy.create_engine
+sql_connection = <%= node[:glance][:sql_connection] %>
+
+# Period in seconds after which SQLAlchemy should reestablish its connection
+# to the database.
+#
+# MySQL uses a default `wait_timeout` of 8 hours, after which it will drop
+# idle connections. This can result in 'MySQL Gone Away' exceptions. If you
+# notice this, you can lower this value to ensure that SQLAlchemy reconnects
+# before MySQL can drop the connection.
+sql_idle_timeout = 3600
+
+# ============ Notification System Options =====================
+
+# Notifications can be sent when images are create, updated or deleted.
+# There are three methods of sending notifications, logging (via the
+# log_file directive), rabbit (via a rabbitmq queue) or noop (no
+# notifications sent, the default)
+# notifier_strategy = <%= node[:glance][:notifier_strategy] %>
+notifier_strategy = rabbit
+
+# Configuration options if sending notifications via rabbitmq (these are
+# the defaults)
+# rabbit_host = localhost
+# rabbit_port = 5672
+# rabbit_use_ssl = false
+# rabbit_userid = guest
+# rabbit_password = guest
+# rabbit_virtual_host = /
+rabbit_notification_topic = glance_notifications
+rabbit_host = <%= node["glance"]["rabbitmq"]["host"] %> 
+rabbit_port = <%= node["glance"]["rabbitmq"]["port"] %> 
+rabbit_userid = <%= node["glance"]["rabbitmq"]["user"] %> 
+rabbit_password = <%= node["glance"]["rabbitmq"]["password"] %> 
+rabbit_virtual_host = <%= node["glance"]["rabbitmq"]["vhost"] %> 
+rabbit_use_ssl = node["glance"]["rabbitmq"]["ssl"]
+#Ha Rabbit attribute
+rabbit_notification_exchange=glance
+
+# ============ Filesystem Store Options ========================
+
+# Directory that the Filesystem backend store
+# writes image data to
+filesystem_store_datadir = <%= node[:glance][:filesystem_store_datadir] %>
+
+# ============ Swift Store Options =============================
+
+# Address where the Swift authentication service lives
+swift_store_auth_address = http://<%= @keystone_address %>:<%= @keystone_service_port %>/v2.0/
+
+# Ensure we'll be using version 2 when authenticating with Keystone
+swift_store_auth_version = 2.0
+
+# User to authenticate against the Swift authentication service
+swift_store_user = <%= @keystone_service_tenant %>:<%= @keystone_service_user %>
+
+# Auth key for the user authenticating against the
+# Swift authentication service
+swift_store_key = <%= @keystone_service_password %>
+
+# Container within the account that the account should use
+# for storing images in Swift
+swift_store_container = <%= node[:glance][:swift_store_container] %>
+
+# Do we create the container if it does not exist?
+swift_store_create_container_on_put = True
+
+# What size, in MB, should Glance start chunking image files
+# and do a large object manifest in Swift? By default, this is
+# the maximum object size in Swift, which is 5GB
+swift_store_large_object_size = 5120
+
+# When doing a large object manifest, what size, in MB, should
+# Glance write chunks to Swift? This amount of data is written
+# to a temporary disk buffer during the process of chunking
+# the image file, and the default is 200MB
+swift_store_large_object_chunk_size = 200
+
+# Whether to use ServiceNET to communicate with the Swift storage servers.
+# (If you aren't RACKSPACE, leave this False!)
+#
+# To use ServiceNET for authentication, prefix hostname of
+# `swift_store_auth_address` with 'snet-'.
+# Ex. https://example.com/v1.0/ -> https://snet-example.com/v1.0/
+swift_enable_snet = False
+
+# ============ S3 Store Options =============================
+
+# Address where the S3 authentication service lives
+s3_store_host = 127.0.0.1:8080/v1.0/
+
+# User to authenticate against the S3 authentication service
+s3_store_access_key = <20-char AWS access key>
+
+# Auth key for the user authenticating against the
+# S3 authentication service
+s3_store_secret_key = <40-char AWS secret key>
+
+# Container within the account that the account should use
+# for storing images in S3. Note that S3 has a flat namespace,
+# so you need a unique bucket name for your glance images. An
+# easy way to do this is append your AWS access key to "glance".
+# S3 buckets in AWS *must* be lowercased, so remember to lowercase
+# your AWS access key if you use it in your bucket name below!
+s3_store_bucket = <lowercased 20-char aws access key>glance
+
+# Do we create the bucket if it does not exist?
+s3_store_create_bucket_on_put = False
+
+# ============ Image Cache Options ========================
+
+image_cache_enabled = <%= node[:glance][:enable_caching] ? "True" : "False" %>
+
+# Directory that the Image Cache writes data to
+# Make sure this is also set in glance-cache.conf
+image_cache_dir = <%= node[:glance][:image_cache_datadir] %>
+
+# Max cache size in bytes
+# Make sure this is also set in glance-cache.conf
+image_cache_max_size = <%= node[:glance][:image_cache_max_size] %>
+
+# Number of seconds after which we should consider an incomplete image to be
+# stalled and eligible for reaping
+image_cache_stall_timeout = <%= node[:glance][:image_cache_stall_timeout] %>
+
+# ============ Delayed Delete Options =============================
+
+# Turn on/off delayed delete
+delayed_delete = False
+
+<% if node[:glance][:use_keystone] and node[:glance][:enable_caching] and node[:glance][:use_cachemanagement] -%>
+[paste_deploy]
+flavor = keystone+cachemanagement
+<% elsif node[:glance][:use_keystone] and node[:glance][:enable_caching] -%>
+[paste_deploy]
+flavor = keystone+caching
+<% elsif node[:glance][:use_keystone] -%>
+[paste_deploy]
+flavor = keystone
+<% elsif node[:glance][:enable_caching] and node[:glance][:use_cachemanagement] -%>
+[paste_deploy]
+flavor = cachemanagement
+<% end -%>
+

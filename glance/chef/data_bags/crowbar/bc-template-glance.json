@@ -1,0 +1,89 @@
+{
+  "id": "bc-template-glance",
+  "description": "Glance service (image registry and delivery service) for the cloud",
+  "attributes": {
+    "glance": {
+      "verbose": false,
+      "debug": false,
+      "images": [
+        "http://|ADMINWEB|/files/ami/ubuntu-12.04-server-cloudimg-amd64.tar.gz"
+      ],
+      "api": {
+        "bind_open_address": true
+      },
+      "registry": {
+        "bind_open_address": true
+      },
+      "enable_caching": false,
+      "use_cachemanagement": false,
+      "image_cache_datadir": "/var/lib/glance/image-cache",
+      "image_cache_stall_timeout": 86400,
+      "image_cache_grace_period": 3600,
+      "image_cache_max_size": 10737418240,
+      "gitrepo": "http://github.com/openstack/glance.git",
+      "git_instance": "",
+      "git_refspec": "stable/grizzly",
+      "use_gitrepo": false,
+      "use_virtualenv": false,
+      "use_pip_cache": false,
+      "use_gitbarclamp": false,
+      "pfs_deps": [
+        "python-greenlet",
+        "python-sqlalchemy",
+        "python-anyjson",
+        "python-eventlet",
+        "python-pastedeploy",
+        "python-routes",
+        "python-webob",
+        "python-boto",
+        "python-migrate",
+        "python-httplib2",
+        "python-kombu",
+        "python-crypto",
+        "python-iso8601",
+        "python-lxml",
+        "python-paste",
+        "python-passlib",
+        "pip://wsgiref",
+        "pip://argparse",
+        "pip://jsonschema",
+        "pip://warlock<2",
+        "pip://python-swiftclient>=1,<2",
+        "pip://python-glanceclient",
+        "pip://python-keystoneclient>=0.2,<0.3"
+      ],
+      "use_syslog": false,
+      "notifier_strategy": "noop",
+      "default_store": "file",
+      "filesystem_store_datadir": "/var/lib/glance/images",
+      "swift_store_container": "glance",
+      "sql_idle_timeout": 3600,
+      "use_keystone": true,
+      "keystone_instance": "none",
+      "service_user": "glance",
+      "service_password": "glance", 
+      "database_engine": "database",
+      "database_instance": "none",
+      "sqlite_connection": "sqlite:////var/lib/glance/glance.sqlite"
+    }
+  },
+  "deployment": {
+    "glance": {
+      "crowbar-revision": 0,
+      "element_states": {
+        "glance-server": [ "readying", "ready", "applying" ]
+      },
+      "elements": {},
+      "element_order": [
+        [ "glance-server" ]
+      ],
+      "config": {
+        "environment": "glance-base-config",
+        "mode": "full",
+        "transitions": false,
+        "transition_list": [
+        ]
+      }
+    }
+  }
+}
